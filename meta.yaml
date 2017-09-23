@@ -1,0 +1,7 @@
+name: vk
+version: 2.0
+deps:
+  - https://raw.githubusercontent.com/Mons/tnt-config/master/config-scm-1.rockspec
+  - https://raw.githubusercontent.com/Mons/tnt-package-reload/master/package.reload-scm-1.rockspec
+  - https://raw.githubusercontent.com/Mons/tarantool-spacer/master/spacer-scm-1.rockspec
+tntdeps: {}
