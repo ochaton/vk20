@@ -34,6 +34,8 @@ function M.ack(taskid, data)
 		expires = fiber.time() + expires
 	end
 
+	local task = box.space.refresh_token:get{ taskid }[3]
+
 	box.space.tokens:insert(T.tokens.tuple {
 		uuid    = uuid.str();
 		ctime   = fiber.time();
@@ -41,9 +43,12 @@ function M.ack(taskid, data)
 		token   = data.token;
 		expires = expires;
 		user_id = tonumber(data.user_id);
+		app_id  = tonumber(task.app_id);
+		email   = tostring(task.email);
 	})
 
 	queue.tube.refresh_token:ack(taskid)
+	queue.tube.token_queue:put({ token = data.token; ctime = fiber.time(); take = 0 }, { ttl = expires, delay = 0, ttr = 1 })
 end
 
 return M
