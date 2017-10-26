@@ -21,7 +21,7 @@ function M.take()
 end
 
 function M.release(taskid)
-	queue.tube.refresh_token:release({taskid}, { delay = 10 })
+	queue.tube.refresh_token:release({tonumber(taskid)}, { delay = 10 })
 end
 
 function M.ack(taskid, data)

@@ -29,3 +29,50 @@ spacer.create_space('oauth_application', {
 }, {
 	{ name = 'primary', type = 'tree', parts = { 'app_id' } },
 })
+
+spacer.create_space('publics', {
+	{ name = 'gid',      type = 'number' },
+	{ name = 'members',  type = 'number' },
+	{ name = 'active',   type = 'number' },
+	{ name = 'videos',   type = 'number' },
+	{ name = 'comments', type = 'number' },
+	{ name = 'posts',    type = 'number' },
+}, {
+	{ name = 'primary', type = 'tree', parts = { 'gid' } },
+	{ name = 'members', type = 'tree', unique = false, parts = { 'members' } },
+})
+
+spacer.create_space('comments', {
+	{ name = 'uuid',   type = 'string' },
+	{ name = 'author', type = 'number' }, -- userId
+	{ name = 'wall',   type = 'number' }, -- wallId (public or user)
+	{ name = 'length', type = 'number' },
+	{ name = 'text',   type = 'string' },
+	{ name = 'vk_id',  type = 'string' },
+	{ name = 'timestamp', type = 'number' },
+}, {
+	{ name = 'primary', type = 'tree', parts = { 'uuid' } },
+	{ name = 'time',    type = 'tree', unique = false, parts = { 'timestamp' } },
+	{ name = 'author',  type = 'tree', unique = false, parts = { 'author', 'timestamp' } },
+	{ name = 'wall',    type = 'tree', unique = false, parts = { 'wall', 'timestamp' } },
+}, {
+	engine = 'vinyl',
+})
+
+spacer.create_space('feed', {
+	{ name = 'uuid',   type = 'string' },
+	{ name = 'user',   type = 'number' },
+	{ name = 'action', type = 'string' },
+	{ name = 'wall',   type = 'number' },
+	{ name = 'post',   type = 'number' },
+	{ name = 'timestamp', type = 'number' },
+	{ name = 'text',   type = 'string' },
+	{ name = 'extra',  type = '*' },
+}, {
+	{ name = 'primary',     type = 'tree', parts = { 'uuid' } },
+	{ name = 'user',        type = 'tree', unique = false, parts = { 'user', 'timestamp' } },
+	{ name = 'user_action', type = 'tree', parts = { 'user', 'action', 'timestamp' } },
+	{ name = 'user_wall',   type = 'tree', parts = { 'user', 'wall', 'timestamp' } },
+}, {
+	engine = 'vinyl',
+})

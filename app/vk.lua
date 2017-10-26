@@ -8,7 +8,9 @@ local M = {}
 
 M.internal = require 'internal'
 
-M.api = require 'api'
+M.api   = require 'api'
+M.logic = require 'logic'
+M.feed  = require 'logic.feed'
 
 local tokens = require 'tokens'
 M.tokens = {}
