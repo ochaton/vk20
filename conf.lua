@@ -16,4 +16,8 @@ box = {
 
 app = {
 
+	expires = {
+		user_friends = 3600 * 24 * 7,
+	}
+
 }

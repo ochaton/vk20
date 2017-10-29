@@ -76,3 +76,18 @@ spacer.create_space('feed', {
 }, {
 	engine = 'vinyl',
 })
+
+spacer.create_space('users', {
+	{ name = 'id',      type = 'number' },
+	{ name = 'friends', type = 'number' },
+	{ name = 'blocked', type = 'string' },
+	{ name = 'mtime',   type = 'number' },
+	{ name = 'ctime',   type = 'number' },
+	{ name = 'count',   type = 'number' },
+	{ name = 'isbot',   type = 'number' },
+	{ name = 'extra',   type = '*'      },
+}, {
+	{ name = 'primary',  type = 'tree', parts = { 'id' } },
+	{ name = 'time',     type = 'tree', unique = false, parts = { 'mtime' } },
+	-- { name = 'bot',      type = 'tree', unique = false, parts = { 'isbot' } },
+})
