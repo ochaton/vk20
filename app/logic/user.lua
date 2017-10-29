@@ -113,6 +113,7 @@ function M.get_friends(uid)
 	if os.time() - user.mtime > config.get('app.expires.user_friends', 3600) then
 		return promise(function (...)
 			local friends = vk.api.friends.get({ token = vk.internal.get_token(); user_id = uid }):direct()
+			friends = friends or {}
 			user.extra = user.extra or {}
 			user.extra.friends = friends
 
@@ -121,11 +122,11 @@ function M.get_friends(uid)
 				{ '=', F.users.extra, user.extra },
 			})
 
-			return user.extra.friends
+			return user.extra.friends or {}
 		end)
 	end
 
-	return promise(function (...) return user.extra.friends end)
+	return promise(function (...) return user.extra.friends or {} end)
 end
 
 return M

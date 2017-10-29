@@ -19,14 +19,14 @@ local function request (method, args)
 	local url = string.format('https://api.vk.com/method/%s?', method)
 	local req = tools.url_query(args)
 
-	return promise(function ( ... )
+	return promise(function (promise, ... )
 		log.info('Request to %s', method)
 
 		local started = fiber.time()
 
 		local response = http.request('POST', url, req)
 		if response.status ~= 200 then
-			log.error('Request to %s failed with %s %s', self.authorize_url, response.status, response.reason)
+			log.error('Request to %s failed with %s %s', url, response.status, response.reason)
 			return nil
 		end
 

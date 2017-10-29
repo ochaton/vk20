@@ -59,6 +59,8 @@ end
 function M.bot_coff(uid)
 	local user = vk.logic.user.actualize(uid)
 
+	log.info('Start processing %s', uid)
+
 	if user.blocked ~= 'false' then return user.blocked end
 
 	local friends_ids = vk.logic.user.get_friends(user.id):direct()
@@ -88,7 +90,7 @@ function M.bot_coff(uid)
 			end
 
 			if #strangers > 0 then
-				log.info('Incremented %s', increment / #strangers)
+				-- log.info('Incremented %s', increment / #strangers)
 				total_increment = total_increment + increment / #strangers
 			end
 

@@ -26,7 +26,7 @@ local function new (async_func)
 	self.fiber = fiber.create(function ()
 		self.chan:get()
 		self.chan:close()
-		self.__callback(self.async())
+		self.__callback(self.async(self))
 	end)
 
 	self.id = M.lastid + 1
