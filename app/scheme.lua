@@ -52,6 +52,7 @@ spacer.create_space('comments', {
 	{ name = 'timestamp', type = 'number' },
 }, {
 	{ name = 'primary', type = 'tree', parts = { 'uuid' } },
+	{ name = 'vk_id', type = 'tree', parts = { 'vk_id' } },
 	{ name = 'time',    type = 'tree', unique = false, parts = { 'timestamp' } },
 	{ name = 'author',  type = 'tree', unique = false, parts = { 'author', 'timestamp' } },
 	{ name = 'wall',    type = 'tree', unique = false, parts = { 'wall', 'timestamp' } },

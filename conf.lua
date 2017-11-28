@@ -6,7 +6,7 @@ box = {
 	-- snapshot_period = 3600,
 	-- snapshot_count  = 2,
 	pid_file = "tarantool.pid",
-	log = 'file:tarantool.log',
+	-- log = 'file:tarantool.log',
 	-- replication_source = { }
 }
 
@@ -19,6 +19,13 @@ app = {
 	expires = {
 		user_friends = 3600 * 24 * 7,
 		user         = 3600 * 24 * 7
+	},
+
+	oauth = {
+		authorize_uri = 'https://oauth.vk.com/authorize';
+		client_id     = 6013906;
+		redirect_uri  = 'http://88.99.82.227/vkauth/';
+		scope         = 'wall,friends';
 	}
 
 }

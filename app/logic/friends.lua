@@ -16,7 +16,7 @@ function M.intersection(uid1, uid2)
 	cv:begin()
 	vk.api.friends.get({ token = vk.internal.get_token(); user_id = uid1 }):callback(
 	function (reply)
-		friends1 = reply
+		friends1 = reply or {}
 		cv:fin()
 	end)
 
@@ -24,7 +24,7 @@ function M.intersection(uid1, uid2)
 
 	vk.api.friends.get({ token = vk.internal.get_token(); user_id = uid2 }):callback(
 	function (reply)
-		friends2 = reply
+		friends2 = reply or {}
 		cv:fin()
 	end)
 

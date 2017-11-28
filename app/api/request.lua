@@ -3,7 +3,7 @@ local M = {}
 local log   = require 'log'
 local json  = require 'json'
 local http  = require 'http.client'
-local tools = require 'api.tools'
+local tools = require 'tools'
 local fiber = require 'fiber'
 
 local promise = require 'lib.promise'
@@ -11,7 +11,10 @@ local promise = require 'lib.promise'
 -- https://api.vk.com/method/METHOD_NAME?PARAMETERS&access_token=ACCESS_TOKEN&v=vk
 
 local function request (method, args)
-	assert(args.token, 'token is required')
+	-- assert(args.token, 'token is required')
+	if not args.token then
+		args.token = vk.internal.get_token()
+	end
 
 	args.access_token = args.token
 	args.token = nil
@@ -25,6 +28,7 @@ local function request (method, args)
 		local started = fiber.time()
 
 		local response = http.request('POST', url, req)
+		print(req)
 		if response.status ~= 200 then
 			log.error('Request to %s failed with %s %s', url, response.status, response.reason)
 			return nil

@@ -40,7 +40,7 @@ function M.like(args)
 	end)
 
 	if not ok then
-		log.error('Error on insert like-event %s: %s', tup, err)
+		-- log.error('Error on insert like-event %s: %s', tup, err)
 	end
 end
 
@@ -87,7 +87,7 @@ function M.post(args)
 	end)
 
 	if not ok then
-		log.error('Error on insert post-event %s: %s', tup, err)
+		-- log.error('Error on insert post-event %s: %s', tup, err)
 	end
 end
 
@@ -118,6 +118,8 @@ function M.comment(args)
 		return
 	end
 
+	args.text = args.text:sub(0, 1024)
+
 	local tup = T.feed.tuple {
 		uuid = uuid.str();
 		user = args.user;
@@ -125,7 +127,7 @@ function M.comment(args)
 		wall = args.wall;
 		post = args.post;
 		timestamp = args.timestamp;
-		-- text = args.text;
+		text = args.text;
 	}
 
 	local ok, err = pcall(function ()
@@ -133,7 +135,7 @@ function M.comment(args)
 	end)
 
 	if not ok then
-		log.error('Error on insert comment-event %s: %s', tup, err)
+		-- log.error('Error on insert comment-event %s: %s', tup, err)
 	end
 end
 
@@ -172,6 +174,8 @@ function M.reply(args)
 		return
 	end
 
+	args.text = args.text:sub(0, 1024)
+
 	local tup = T.feed.tuple {
 		uuid = uuid.str();
 		user = args.user;
@@ -179,7 +183,7 @@ function M.reply(args)
 		wall = args.wall;
 		post = args.post;
 		timestamp = args.timestamp;
-		-- text = args.text;
+		text = args.text;
 		extra = args.reply;
 	}
 
@@ -188,7 +192,7 @@ function M.reply(args)
 	end)
 
 	if not ok then
-		log.error('Error on insert reply-event %s: %s', tup, err)
+		-- log.error('Error on insert reply-event %s: %s', tup, err)
 	end
 end
 

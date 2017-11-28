@@ -6,17 +6,11 @@ local M = {}
 M.lastid = 0
 
 local function new (async_func)
+	local id = M.lastid + 1
 	local self = setmetatable({}, {
 		__index = M,
-		__gc    = function (self, ... )
-			log.info("Promise #%s destroyed", self.id)
-			local ok, err = pcall(function()
-				self.chan:close()
-				self.fiber:cancel()
-			end)
-			if not ok then
-				log.error("Error on promise destruction %s", err)
-			end
+		__gc    = function ( ... )
+			log.info("Promise #%s destroyed", id)
 		end,
 	})
 
@@ -26,10 +20,25 @@ local function new (async_func)
 	self.fiber = fiber.create(function ()
 		self.chan:get()
 		self.chan:close()
-		self.__callback(self.async(self))
+		self.chan = nil
+		local ret = { pcall(function ()
+			self.rv = self.async(self)
+		end) }
+		do
+			local ok = table.remove(ret, 1)
+			if not ok then
+				log.error("PROMISE: %s", ret[1])
+			end
+		end
+		self.__status = 'done'
+
+		if self.__callback then
+			self.rv = self.__callback(self.rv)
+		end
+		self.fiber = nil
 	end)
 
-	self.id = M.lastid + 1
+	self.id = id
 	M.lastid = self.id
 
 	return self
@@ -43,8 +52,18 @@ function M:callback(callback)
 end
 
 function M:direct()
-	self.fiber:cancel()
-	self.chan:close()
+
+	if self.chan then
+		self.chan:close()
+		self.fiber:cancel()
+	end
+
+	if self.__callback then
+		while self.__status ~= 'done' do
+			fiber.sleep(0)
+		end
+		return self.rv
+	end
 
 	return self.async()
 end

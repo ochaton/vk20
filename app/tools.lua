@@ -29,4 +29,9 @@ function M.url_query(tbl)
 	return table.concat(rv, '&')
 end
 
+function M.url_sanitize(url)
+	local ret = url:gsub('/+', '/')
+	return ret:gsub('/$', '')
+end
+
 return M

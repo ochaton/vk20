@@ -9,33 +9,40 @@ function M.actualize(uid, force)
 	local user = T.users.hash(box.space.users:get{ uid })
 
 	if user and ((os.time() - user.ctime) < config.get('app.expires.user', 3600)) and not force then
-		return user
+		return promise(function() return user end)
 	end
 
-	local users = vk.api.users.get({ token = vk.internal.get_token(); user_id = uid, fields = 'counters' }):direct()
-	local new = users[1]
+	return vk.api.users.get {
+		token = vk.internal.get_token();
+		user_id = uid;
+		fields = 'counters';
+	}:callback(function (users)
+		log.info('here: %s', users)
+		if not users then return {} end
 
-	new.counters = new.counters or {}
 
-	if user then
-		user = box.space.users:update({ uid }, {
-			{ '=', F.users.friends, new.counters.friends or 0 },
-			{ '=', F.users.ctime, os.time() },
-			{ '=', F.users.blocked, new.deactivated or 'false' },
-		})
-	else
-		user = box.space.users:insert(T.users.tuple {
-			id      = tonumber(new.uid);
-			friends = new.counters.friends or 0;
-			blocked = new.deactivated or 'false';
-			mtime   = 0;
-			ctime   = os.time();
-			extra   = {};
-		})
-		log.info('Inserted %s', user)
-	end
+		local new = users[1]
+		new.counters = new.counters or {}
 
-	return T.users.hash(user)
+		if user then
+			user = box.space.users:update({ uid }, {
+				{ '=', F.users.friends, new.counters.friends or 0 },
+				{ '=', F.users.ctime, os.time() },
+				{ '=', F.users.blocked, new.deactivated or 'false' },
+			})
+		else
+			user = box.space.users:insert(T.users.tuple {
+				id      = tonumber(new.uid);
+				friends = new.counters.friends or 0;
+				blocked = new.deactivated or 'false';
+				mtime   = 0;
+				ctime   = os.time();
+				extra   = {};
+			})
+			log.info('Inserted %s', user)
+		end
+		return T.users.hash(user)
+	end)
 end
 
 function M.download(uids)
@@ -104,7 +111,7 @@ end
 
 function M.get_friends(uid)
 	local uid  = assert(tonumber(uid), 'Uid must be number')
-	local user = vk.logic.user.actualize(uid)
+	local user = vk.logic.user.actualize(uid):direct()
 
 	if user.blocked ~= 'false' then
 		return promise(function (...) return {} end)
