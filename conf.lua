@@ -1,5 +1,5 @@
 box = {
-	listen = os.getenv("LISTEN_URI") or "127.0.0.1:3301",
+	listen = os.getenv("LISTEN_URI") or "127.0.0.1:5001",
 	memtx_memory = 1.5 * 2^30,
 	background = not tonumber(os.getenv("DEV")) == 1,
 	vinyl_cache = 134217728,
@@ -24,7 +24,7 @@ app = {
 	oauth = {
 		authorize_uri = 'https://oauth.vk.com/authorize';
 		client_id     = 6013906;
-		redirect_uri  = 'http://88.99.82.227/vkauth/';
+		redirect_uri  = 'http://88.99.82.227/vk/code/';
 		scope         = 'wall,friends';
 	}
 

@@ -1,5 +1,8 @@
 local M = {}
 
+local http = require 'http.client'
+local json = require 'json'
+
 local config = require 'config'
 local url_escape   = require'tools'.url_escape
 local url_unescape = require'tools'.url_unescape
@@ -22,7 +25,10 @@ function M.get_code(args)
 	}
 end
 
--- function M.get_access_token(args)
--- end
+function M.user(req)
+	req.log:info(json.encode(req.args))
+	return 200, {}, 'Ok!'
+end
+
 
 return M

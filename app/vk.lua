@@ -2,6 +2,8 @@ local log = require 'log'
 local fiber = require 'fiber'
 local json = require 'json'
 
+local ctx_t = require 'ctx'
+
 queue = require 'queue'
 require 'scheme'
 
@@ -77,16 +79,39 @@ local url_sanitize = require 'tools'.url_sanitize
 function http_api(req)
 	log.info(json.encode(req))
 
+	req.log = ctx_t().log
+	req.log.store = nil -- print all log-messages
+
 	req.uri:gsub('^/', '/')
 	req.uri = url_sanitize(req.uri)
 
+	req.guard = box.tuple.new{}
+	debug.setmetatable(req.guard, {
+		__gc = function (...)
+			if req.status == 200 then
+				req.log:info("[END=%s] on %s", req.status or '000', req.uri)
+			else
+				req.log:info("[END=%s] on %s reason: %s", req.status or '000', req.uri, req.reason)
+			end
+		end
+	})
+
+	req.log:info("[START] %s %s with args '%s'",
+		req.method,
+		req.uri,
+		json.encode(req.args),
+	)
+
 	local method
-	if req.uri == '/auth' then
+	if req.uri == '/vk/auth' then
 		method = M.auth.get_code
+	elseif req.uri == '/vk/code' then
+		method = M.auth.user
 	end
 
 	if not method then
-		log.error("Method for '%s' not found", req.uri)
+		req.log.error("Method for '%s' not found", req.uri)
+		req.status = 404
 		return 404, {}
 	end
 
@@ -94,10 +119,13 @@ function http_api(req)
 	local ok  = table.remove(ret, 1)
 
 	if not ok then
-		log.error('Error happened on method %s: %s', req.uri, ret[1])
+		req.log.error('Error happened on method: %s', ret[1])
+		req.status = 500
+		req.reason = string.format('Internal error: %s', ret[1])
 		return 500, {}
 	end
 
+	req.status = ret[1]
 	return unpack(ret)
 end
 
