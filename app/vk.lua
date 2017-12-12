@@ -2,7 +2,7 @@ local log = require 'log'
 local fiber = require 'fiber'
 local json = require 'json'
 
-local ctx_t = require 'ctx'
+local ctx_t = require 'ctx.log'
 
 queue = require 'queue'
 require 'scheme'
@@ -99,7 +99,7 @@ function http_api(req)
 	req.log:info("[START] %s %s with args '%s'",
 		req.method,
 		req.uri,
-		json.encode(req.args),
+		json.encode(req.args)
 	)
 
 	local method
