@@ -14,7 +14,7 @@ function M.intersection(uid1, uid2)
 	local cv = cv() cv:begin()
 
 	cv:begin()
-	vk.api.friends.get({ token = vk.internal.get_token(); user_id = uid1 }):callback(
+	vk.api.friends.get({ user_id = uid1 }):callback(
 	function (reply)
 		friends1 = reply or {}
 		cv:fin()
@@ -22,7 +22,7 @@ function M.intersection(uid1, uid2)
 
 	cv:begin()
 
-	vk.api.friends.get({ token = vk.internal.get_token(); user_id = uid2 }):callback(
+	vk.api.friends.get({ user_id = uid2 }):callback(
 	function (reply)
 		friends2 = reply or {}
 		cv:fin()
@@ -57,9 +57,9 @@ local function list2hash(...)
 end
 
 function M.bot_coff(uid)
-	local user = vk.logic.user.actualize(uid)
+	local user = vk.logic.user.actualize(uid):direct()
 
-	log.info('Start processing %s', uid)
+	log.info('Start processing %s', user.id)
 
 	if user.blocked ~= 'false' then return user.blocked end
 

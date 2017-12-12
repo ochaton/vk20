@@ -7,7 +7,7 @@ local M = {}
 
 function M.info(gid)
 	local gid = assert(tonumber(gid), 'Gid must be a number')
-	local reply = vk.api.groups.getById({ token = vk.internal.get_token(), gid = gid,
+	local reply = vk.api.groups.getById({ gid = gid,
 		fields = 'counters,members_count,can_see_all_posts,verified' }):direct()
 
 	assert(type(reply) == 'table' and reply[1], 'Reply is Null')
@@ -15,7 +15,7 @@ function M.info(gid)
 	local public = table.remove(reply, 1)
 	local posts
 
-	reply = vk.api.wall.get({ token = vk.internal.get_token(), owner_id = -gid, count = 1 }):direct()
+	reply = vk.api.wall.get({ owner_id = -gid, count = 1 }):direct()
 	if (type(reply) == 'table' and reply[1]) then
 		posts = table.remove(reply, 1)
 	else
@@ -54,7 +54,7 @@ function M.find_active(gid, maximum)
 
 		offset = offset + 100
 
-		vk.api.wall.get({ token = vk.internal.get_token(); owner_id = -gid, count = 100, offset = offset }):callback(
+		vk.api.wall.get({ owner_id = -gid, count = 100, offset = offset }):callback(
 		function(prom, reply)
 
 			if not (type(reply) == 'table' and reply[1]) then
@@ -127,7 +127,6 @@ function M.commentators(post)
 
 	while offset < post.count do
 		local reply = vk.api.wall.getComments({
-			token      = vk.internal.get_token();
 			owner_id   = post.wall,
 			post_id    = post.post,
 			count      = 100,

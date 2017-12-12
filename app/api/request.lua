@@ -60,7 +60,7 @@ local function request (method, args)
 			return nil
 		end
 
-		return response.body
+		return response.body.response
 	end)
 end
 

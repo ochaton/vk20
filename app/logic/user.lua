@@ -12,14 +12,13 @@ function M.actualize(uid, force)
 		return promise(function() return user end)
 	end
 
-	return vk.api.users.get {
-		token = vk.internal.get_token();
-		user_id = uid;
-		fields = 'counters';
-	}:callback(function (users)
-		log.info('here: %s', users)
-		if not users then return {} end
+	return promise(function (promise, ...)
+		local users = vk.api.users.get {
+			user_id = uid;
+			fields = 'counters';
+		}:direct()
 
+		if not users then return {} end
 
 		local new = users[1]
 		new.counters = new.counters or {}
@@ -76,7 +75,7 @@ function M.download(uids)
 
 			cv:begin()
 
-			vk.api.users.get({ token = vk.internal.get_token(); uids = q; fields = 'counters' }):callback(function (users)
+			vk.api.users.get({ uids = q; fields = 'counters' }):callback(function (users)
 				for _, user in ipairs(users) do
 					local found = box.space.users:get{ user.uid }
 					if found then
@@ -119,7 +118,7 @@ function M.get_friends(uid)
 
 	if os.time() - user.mtime > config.get('app.expires.user_friends', 3600) then
 		return promise(function (...)
-			local friends = vk.api.friends.get({ token = vk.internal.get_token(); user_id = uid }):direct()
+			local friends = vk.api.friends.get({ user_id = uid }):direct()
 			friends = friends or {}
 			user.extra = user.extra or {}
 			user.extra.friends = friends
