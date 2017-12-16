@@ -8,7 +8,12 @@ M.MAX_RETRY = 3
 
 local function new (async_func)
 	local id = M.lastid + 1
-	local self = setmetatable({}, { __index = M })
+	local self = setmetatable({}, {
+		__index = M,
+		__tostring = function (wself)
+			return "Promise#" .. wself.id or '<unknown>'
+		end
+	})
 
 	self.attempt = 0
 
@@ -28,45 +33,7 @@ local function new (async_func)
 		until self.__retry == 0
 	end
 
-	self.chan  = fiber.channel()
 	self.__retry = 1
-
-	self.fiber = fiber.create(function ()
-		fiber.self().name('promise #' .. id)
-
-		while true do
-
-			local mustbreak
-			if self.chan then
-				mustbreak = self.chan:get(1)
-			end
-
-			if mustbreak == nil then
-				-- That means that promise was destroyed
-				log.info("Promise destroyed")
-				if self.chan then
-					self.chan:close()
-					self.chan = nil
-				end
-				return
-			elseif mustbreak then
-				break
-			end
-		end
-
-		if self.chan then
-			self.chan:close()
-			self.chan = nil
-		end
-
-		self.rv = self.async()
-		self.__status = 'done'
-
-		if self.__callback then
-			self.rv = self.__callback(self.rv)
-		end
-		self.fiber = nil
-	end)
 
 	self.id = id
 	M.lastid = self.id
@@ -85,7 +52,20 @@ function M:callback(callback)
 		end
 		return ret[1]
 	end
-	self.chan:put(true)
+
+	self.fiber = fiber.create(
+		function()
+			fiber.self().name('promise #' .. self.id)
+
+			self.rv = self.async()
+			self.__status = 'done'
+
+			if self.__callback then
+				self.rv = self.__callback(self.rv)
+			end
+			self.fiber = nil
+		end
+	)
 	return self
 end
 
@@ -97,9 +77,8 @@ end
 
 function M:direct()
 
-	if self.chan then
+	if self.fiber then
 		self.fiber:cancel()
-		self.chan:close()
 	end
 
 	if self.__callback then

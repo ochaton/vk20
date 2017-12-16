@@ -12,14 +12,13 @@ local promise = require 'lib.promise'
 -- https://api.vk.com/method/METHOD_NAME?PARAMETERS&access_token=ACCESS_TOKEN&v=vk
 
 local function request (method, args)
-	-- assert(args.token, 'token is required')
-	args.access_token = vk.internal.get_token()
-
-	local url = string.format('https://api.vk.com/method/%s?', method)
-	local req = tools.url_query(args)
-
 	return promise(function (promise, ... )
+
 		log.info('Request to %s. %s try', method, promise.attempt)
+		args.access_token = vk.internal.get_token()
+
+		local url = string.format('https://api.vk.com/method/%s?', method)
+		local req = tools.url_query(args)
 
 		local started = fiber.time()
 
