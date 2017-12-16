@@ -25,7 +25,7 @@ local function new (async_func)
 			local ret = { pcall(async_func, self) }
 			local ok = table.remove(ret, 1)
 			if not ok then
-				log.error("PROMISE: %s", ret[1])
+				log.error("PROMISE: %s.", ret[1])
 			else
 				return ret[1]
 			end
@@ -60,9 +60,7 @@ function M:callback(callback)
 			self.rv = self.async()
 			self.__status = 'done'
 
-			if self.__callback then
-				self.rv = self.__callback(self.rv)
-			end
+			self.rv = self.__callback(self.rv)
 			self.fiber = nil
 		end
 	)

@@ -129,4 +129,6 @@ function http_api(req)
 	return unpack(ret)
 end
 
+require 'strict'.on()
+
 return M

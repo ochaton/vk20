@@ -92,3 +92,21 @@ spacer.create_space('users', {
 	{ name = 'time',     type = 'tree', unique = false, parts = { 'mtime' } },
 	-- { name = 'bot',      type = 'tree', unique = false, parts = { 'isbot' } },
 })
+
+spacer.create_space('posts', {
+	{ name = 'owner_id', type = 'number' },
+	{ name = 'post_id',  type = 'number' },
+	{ name = 'type',     type = 'string' },
+	{ name = 'text',     type = 'string' },
+	{ name = 'mtime',    type = 'number' },
+	{ name = 'ctime',    type = 'number' },
+	{ name = 'likes',    type = '*'      },
+	{ name = 'comments', type = '*'      },
+	{ name = 'reposts',  type = '*'      },
+	{ name = 'extra',    type = '*'      },
+}, {
+	{ name = 'vk_id',  type = 'tree', parts = { 'owner_id', 'post_id' } },
+	{ name = 'time',   type = 'tree', unique = false, parts = { 'mtime' } },
+}, {
+	engine = 'vinyl',
+})

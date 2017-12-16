@@ -55,7 +55,7 @@ function M.find_active(gid, maximum)
 		offset = offset + 100
 
 		vk.api.wall.get({ owner_id = -gid, count = 100, offset = offset }):callback(
-		function(prom, reply)
+		function(reply)
 
 			if not (type(reply) == 'table' and reply[1]) then
 				log.warn("EMPTY REPLY")

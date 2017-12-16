@@ -59,7 +59,7 @@ local function request (method, args)
 			return nil
 		end
 
-		return response.body.response
+		return response.body.response or response.body
 	end)
 end
 

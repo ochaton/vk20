@@ -59,7 +59,8 @@ function M.download(uids)
 		end
 	end
 
-	return promise(function (...)
+	return promise(
+	function (...)
 		local cv = cv() cv:begin()
 
 		local i = 1
