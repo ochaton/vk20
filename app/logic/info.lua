@@ -1,10 +1,13 @@
 local M = {}
 
 local cv = require 'lib.cv'
+local json = require 'json'
 
 function M.user(uid, days)
 	local user = vk.logic.user.actualize(uid, true):direct()
 	local wall = vk.logic.wall.posts(uid, 10):direct()
+
+	local friends = vk.logic.user.get_friends(uid):direct()
 
 	local subscriptions = vk.api.users.getSubscriptions{ uid = uid }:direct()
 	local followers = vk.api.users.getFollowers{ uid = uid }:direct()
@@ -15,7 +18,7 @@ function M.user(uid, days)
 	if type(subscriptions) == 'table' and subscriptions.count and type(subscriptions.groups.items) == 'table' then
 		for _, group in ipairs(subscriptions.groups.items) do
 			cv:begin()
-			vk.logic.wall.posts(group, 10):callback(function () cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(group, 300):callback(function () cv:fin() end).MAX_RETRY = 1
 		end
 	end
 
@@ -25,14 +28,19 @@ function M.user(uid, days)
 
 		for _, user in ipairs(followers.items) do
 			cv:begin()
-			vk.logic.wall.posts(user, 10):callback(function() cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(user, 300):callback(function() cv:fin() end).MAX_RETRY = 1
 		end
+	end
+
+	for _, friend in ipairs(friends) do
+		cv:begin()
+		vk.logic.wall.posts(friend, 300):callback(function() cv:fin() end).MAX_RETRY = 1
 	end
 
 	if type(groups) == 'table' then
 		for _, group in ipairs(groups) do
 			cv:begin()
-			vk.logic.wall.posts(group, 10):callback(function() cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(group, 300):callback(function() cv:fin() end).MAX_RETRY = 1
 		end
 	end
 
@@ -59,5 +67,148 @@ function M.user(uid, days)
 	}
 end
 
+function M.update_extend_user(uinfo)
+	local uid = uinfo.uid
+	if uinfo.deactivated then return {} end
+
+	local groups = vk.api.groups.get{ uid = uid, count = 1000 }:direct()
+
+	vk.logic.wall.posts(uid):callback(function (ret)
+		uinfo.wall_posts = 0
+		uinfo.wall_likes = 0
+		uinfo.wall_comments = 0
+
+		uinfo.posts = 0
+		uinfo.reposts = 0
+
+		for _, post in pairs(ret.posts) do
+			uinfo.wall_posts = uinfo.wall_posts + 1
+			uinfo.wall_likes = uinfo.wall_likes + post.likes
+			uinfo.wall_comments = uinfo.wall_comments + post.comments
+
+			if post.type == 'post' then
+				uinfo.posts = uinfo.posts + 1
+			elseif post.type == 'copy' then
+				uinfo.reposts = uinfo.reposts + 1
+			end
+		end
+
+		local found = box.space.users_extended:get({ uid })
+		if found then
+			box.space.users_extended:update({ uid }, {
+				{ '=', F.users_extended.uid,           uid };
+				{ '=', F.users_extended.name,          uinfo.last_name .. " " .. uinfo.first_name };
+				{ '=', F.users_extended.photos,        uinfo.counters.photos };
+				{ '=', F.users_extended.albums,        uinfo.counters.albums };
+				{ '=', F.users_extended.friends,       uinfo.counters.friends };
+				{ '=', F.users_extended.subscribers,   uinfo.counters.followers };
+				{ '=', F.users_extended.videos,        uinfo.counters.videos };
+				{ '=', F.users_extended.audios,        uinfo.counters.audios };
+				{ '=', F.users_extended.posts,         uinfo.posts };
+				{ '=', F.users_extended.reposts,       uinfo.reposts };
+				{ '=', F.users_extended.comments,      uinfo.wall_comments };
+				{ '=', F.users_extended.likes,         uinfo.wall_likes };
+				{ '=', F.users_extended.groups,        #groups };
+				{ '=', F.users_extended.subscriptions, uinfo.counters.subscriptions };
+				{ '=', F.users_extended.raw,           json.encode(uinfo) };
+			})
+		else
+			found = box.space.users_extended:insert(T.users_extended.tuple {
+				uid            = tonumber(uid);
+				name           = uinfo.last_name .. " " .. uinfo.first_name;
+				photos         = tonumber(uinfo.counters.photos);
+				albums         = tonumber(uinfo.counters.albums);
+				friends        = tonumber(uinfo.counters.friends);
+				subscribers    = tonumber(uinfo.counters.followers);
+				videos         = tonumber(uinfo.counters.videos);
+				audios         = tonumber(uinfo.counters.audios);
+				posts          = tonumber(uinfo.posts);
+				reposts        = tonumber(uinfo.reposts);
+				comments       = tonumber(uinfo.wall_comments);
+				likes          = tonumber(uinfo.wall_likes);
+				groups         = tonumber(#groups);
+				subscriptions  = tonumber(uinfo.counters.subscriptions);
+				raw            = json.encode(uinfo);
+			})
+		end
+	end)
+
+	return true
+end
+
+function M.extend_user(uid)
+	local ret = {}
+	while type(ret[1]) ~= 'table' do
+		ret = vk.api.users.get {user_id = uid; fields = 'photo_id,verified,sex,bdate,city,country,home_town,has_photo,photo_50,photo_100,photo_200_orig,photo_200, photo_400_orig,photo_max,photo_max_orig,online,domain,has_mobile,contacts,site,education,universities, schools,status,last_seen,followers_count,occupation,nickname,relatives,relation,personal,connections,exports,wall_comments,activities,interests,music,movies,tv,books,games,about,quotes,can_post,can_see_all_posts,is_favorite,timezone,screen_name,maiden_name,crop_photo,career,military,counters,first_name_nom,last_name_nom' }:direct()
+	end
+
+	local uinfo = table.remove(ret, 1)
+	if uinfo.deactivated then return {} end
+
+	do
+		local ret = vk.logic.wall.posts(uid):direct()
+
+		uinfo.wall_posts = 0
+		uinfo.wall_likes = 0
+		uinfo.wall_comments = 0
+
+		uinfo.posts = 0
+		uinfo.reposts = 0
+
+		for _, post in pairs(ret.posts) do
+			uinfo.wall_posts = uinfo.wall_posts + 1
+			uinfo.wall_likes = uinfo.wall_likes + post.likes
+			uinfo.wall_comments = uinfo.wall_comments + post.comments
+
+			if post.type == 'post' then
+				uinfo.posts = uinfo.posts + 1
+			elseif post.type == 'copy' then
+				uinfo.reposts = uinfo.reposts + 1
+			end
+		end
+	end
+
+	local groups = vk.api.groups.get{ uid = uid, count = 1000 }:direct()
+
+	local found = box.space.users_extended:get({ uid })
+	if found then
+		box.space.users_extended:update({ uid }, {
+			{ '=', F.users_extended.uid,           uid };
+			{ '=', F.users_extended.name,          uinfo.last_name .. " " .. uinfo.first_name };
+			{ '=', F.users_extended.photos,        uinfo.counters.photos };
+			{ '=', F.users_extended.albums,        uinfo.counters.albums };
+			{ '=', F.users_extended.friends,       uinfo.counters.friends };
+			{ '=', F.users_extended.subscribers,   uinfo.counters.followers };
+			{ '=', F.users_extended.videos,        uinfo.counters.videos };
+			{ '=', F.users_extended.audios,        uinfo.counters.audios };
+			{ '=', F.users_extended.posts,         uinfo.posts };
+			{ '=', F.users_extended.reposts,       uinfo.reposts };
+			{ '=', F.users_extended.comments,      uinfo.wall_comments };
+			{ '=', F.users_extended.likes,         uinfo.wall_likes };
+			{ '=', F.users_extended.groups,        #groups };
+			{ '=', F.users_extended.subscriptions, uinfo.counters.subscriptions };
+			{ '=', F.users_extended.raw,           json.encode(uinfo) };
+		})
+	else
+		found = box.space.users_extended:insert(T.users_extended.tuple {
+			uid            = tonumber(uid);
+			name           = uinfo.last_name .. " " .. uinfo.first_name;
+			photos         = tonumber(uinfo.counters.photos);
+			albums         = tonumber(uinfo.counters.albums);
+			friends        = tonumber(uinfo.counters.friends);
+			subscribers    = tonumber(uinfo.counters.followers);
+			videos         = tonumber(uinfo.counters.videos);
+			audios         = tonumber(uinfo.counters.audios);
+			posts          = tonumber(uinfo.posts);
+			reposts        = tonumber(uinfo.reposts);
+			comments       = tonumber(uinfo.wall_comments);
+			likes          = tonumber(uinfo.wall_likes);
+			groups         = tonumber(#groups);
+			subscriptions  = tonumber(uinfo.counters.subscriptions);
+			raw            = json.encode(uinfo);
+		})		
+	end
+	return T.users_extended.hash(found)
+end
 
 return M

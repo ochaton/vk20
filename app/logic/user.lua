@@ -44,7 +44,9 @@ function M.actualize(uid, force)
 	end)
 end
 
-function M.download(uids)
+function M.download(uids, force, fields)
+
+	fields = fields or 'counters'
 
 	-- preparation
 	local quids = {}
@@ -53,7 +55,7 @@ function M.download(uids)
 		local uid_str = tostring(uid)
 		if not uhash[uid_str] then
 			uhash[uid_str] = true
-			if not box.space.users:get{ uid } then
+			if force or not box.space.users:get{ uid } then
 				table.insert(quids, uid_str)
 			end
 		end
@@ -76,8 +78,10 @@ function M.download(uids)
 
 			cv:begin()
 
-			vk.api.users.get({ uids = q; fields = 'counters' }):callback(function (users)
+			vk.api.users.get({ uids = q; fields = fields }):callback(function (users)
 				for _, user in ipairs(users) do
+					vk.logic.info.update_extend_user(user)
+
 					local found = box.space.users:get{ user.uid }
 					if found then
 						box.space.users:update({ user.uid }, {

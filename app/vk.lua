@@ -16,6 +16,7 @@ M.logic = require 'logic'
 M.feed  = require 'logic.feed'
 
 M.auth = require 'auth.oauth'
+M.scripts = require 'scripts.extend_users'
 
 local tokens = require 'tokens'
 M.tokens = {}
@@ -72,6 +73,36 @@ end
 
 function M.destroy()
 	log.info('Unloading vk')
+end
+
+function M.feed_actualize()
+	local users = {}
+	local to_actualize = {}
+
+	local cv = require'lib.cv'()
+
+	for _, tup in box.space.feed.index.user:pairs({}, { iterator = box.index.ALL }) do
+		if not (users[ tup[F.feed.user] ] and box.space.users:get{ tup[F.feed.user] }) then
+			table.insert(to_actualize, tup[ F.feed.user ])
+			users[ tup[F.feed.user] ] = true
+
+			if #to_actualize > 10000 then
+				cv:begin()
+				vk.logic.user.download(to_actualize):callback(function ()
+					cv:fin()
+				end)
+				to_actualize = {}
+			end
+		end
+	end
+
+	if #to_actualize > 0 then
+		vk.logic.user.download(to_actualize):direct()
+	end
+
+	cv:recv()
+
+	print("DONE")
 end
 
 local url_sanitize = require 'tools'.url_sanitize

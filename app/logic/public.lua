@@ -22,12 +22,25 @@ function M.info(gid)
 		box.log.error('Reply wall for %s failed', -gid)
 	end
 
-	return T.publics.hash(box.space.publics:insert(T.publics.tuple {
-		gid     = gid;
-		members = public.members_count;
-		posts   = posts;
-		videos  = public.counters.videos or 0;
-	}))
+	local tup
+
+	local found = box.space.publics:get{ gid }
+	if found then
+		tup = box.space.publics:update({ gid }, {
+			{ '=', F.publics.members, public.members_count };
+			{ '=', F.publics.posts, posts };
+			{ '=', F.publics.videos, public.counters.videos or 0  }
+		})
+	else
+		tup = box.space.publics:insert(T.publics.tuple {
+			gid     = gid;
+			members = public.members_count;
+			posts   = posts;
+			videos  = public.counters.videos or 0;
+		})
+	end
+
+	return T.publics.hash(tup)
 end
 
 function M.find_active(gid, maximum)
@@ -119,7 +132,6 @@ function M.find_active(gid, maximum)
 	})
 end
 
-
 function M.commentators(post)
 
 	local commentators = {}
@@ -188,6 +200,47 @@ function M.commentators(post)
 	end
 
 	return commentators
+end
+
+function M.get_members(gid)
+	local public = vk.logic.public.info(gid)
+
+	return promise(
+	function (promise)
+
+		local members = {}
+
+		local offset = 0
+		while offset < public.members do
+			local reply = vk.api.groups.getMembers{ group_id = gid, count = 1000, offset = offset }
+			if type(reply) == 'table' and type(reply.items) then
+				for _, uid in ipairs(reply.items) do
+					table.insert(members, uid)
+				end
+			end
+			offset = offset + 1000
+		end
+
+		return members
+	end)
+end
+
+function M.next_public(gid)
+	local members = vk.logic.public.get_members(gid):direct()
+
+	local cv = cv() cv:begin()
+
+	for _, uid in ipairs(members) do
+		-- local user = box.space.users:get{ uid }
+		-- while offset < user.counters do
+		-- 	cv:begin()
+		-- 	vk.api.groups.get{ uid = uid }:callback(function (res)
+
+		-- 	end)
+		-- end
+	end
+
+	cv:fin() cv:recv()
 end
 
 return M

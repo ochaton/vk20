@@ -13,73 +13,76 @@ function M.posts(wall_id, count)
 
 	return promise(
 		function (promise)
-			local res = vk.api.wall.get{ owner_id = wall_id, count = count, extended = 1 }:direct()
-			if not (type(res) == 'table' and res.wall) then
-				return {}
-			end
+			local cv = cv() cv:begin()
 
-			local post_count = table.remove(res.wall, 1)
 			local rv = {}
 			rv.posts = {}
 			rv.comments = {}
 			rv.likes = {}
 
-			local cv = cv() cv:begin()
+			local offset = 0
+			while offset < count do
 
-			for _, post in ipairs(res.wall) do
-				rv.posts[post.id] = {
-					owner_id = tonumber(wall_id);
-					post_id  = tonumber(post.id);
-					type     = post.post_type;
-					text     = post.text or '';
-					mtime    = os.time();
-					ctime    = tonumber(post.date);
-
-					likes    = type(post.likes) == 'table' and post.likes.count;
-					comments = type(post.comments) == 'table' and post.comments.count;
-					reposts = type(post.reposts) == 'table' and post.reposts.count;
-
-					extra   = {
-						copy_owner_id = post.copy_owner_id;
-						copy_post_id  = post.copy_post_id;
-					}
-				}
-				if not box.space.posts.index.vk_id:get{ wall_id, tonumber(post.id) } then
-					box.space.posts:insert(T.posts.tuple(rv.posts[post.id]))
-				end
-
-				if post.from_id > 0 then
-					vk.feed.post({
-						user      = post.from_id;
-						timestamp = post.date;
-						wall      = post.to_id;
-						post      = post.id;
-						text      = post.text;
-					})
-				end
-
-				if post.comments.count > 0 then
-					cv:begin()
-					vk.logic.wall.comments(post):callback(
-					function (comments)
-						rv.comments[ post.id ] = comments
+				cv:begin()
+				vk.api.wall.get{ owner_id = wall_id, count = 100, offset = offset, extended = 1 }:callback(
+				function(res)
+					if not (type(res) == 'table' and res.wall) then
 						cv:fin()
-						return
-					end)
-				end
+						return {}
+					end
 
-				if post.likes.count > 0 then
-					cv:begin()
-					vk.logic.wall.likes(post):callback(
-					function (likes)
-						rv.likes[ post.id ] = likes
-						cv:fin()
-					end)
-				end
+					local post_count = table.remove(res.wall, 1)
 
+					for _, post in ipairs(res.wall) do
+						rv.posts[post.id] = {
+							owner_id = tonumber(wall_id);
+							post_id  = tonumber(post.id);
+							type     = post.post_type;
+							text     = post.text or '';
+							mtime    = os.time();
+							ctime    = tonumber(post.date);
+
+							likes    = type(post.likes) == 'table' and post.likes.count;
+							comments = type(post.comments) == 'table' and post.comments.count;
+							reposts = type(post.reposts) == 'table' and post.reposts.count;
+
+							extra   = {
+								copy_owner_id = post.copy_owner_id;
+								copy_post_id  = post.copy_post_id;
+							}
+						}
+
+						if not box.space.posts.index.vk_id:get{ wall_id, tonumber(post.id) } then
+							box.space.posts:insert(T.posts.tuple(rv.posts[post.id]))
+						end
+
+						if post.from_id > 0 then
+							vk.feed.post({
+								user      = post.from_id;
+								timestamp = post.date;
+								wall      = post.to_id;
+								post      = post.id;
+								text      = post.text;
+							})
+						end
+
+						if post.comments.count > 0 then
+							rv.comments[ post.id ] =  vk.logic.wall.comments(post):direct()
+						end
+
+						if post.likes.count > 0 then
+							rv.likes[ post.id ] = vk.logic.wall.likes(post):direct()
+						end
+					end
+
+					cv:fin()
+				end)
+
+				offset = offset + 100
 			end
 
 			cv:fin() cv:recv()
+
 			return rv
 		end
 	)
@@ -91,7 +94,12 @@ function M.likes(post, noreturn)
 
 		local offset = 0
 
+		if box.space.likes.index.vk_id:get{ post.to_id, post.id } then
+			return {}
+		end
+
 		if not (type(post.likes) == 'table' and post.likes.count) then
+			post.likes = post.likes or {}
 			local likes = vk.api.likes.getList{ owner_id = post.to_id, item_id = post.id, type = 'post' }:direct()
 			if type(likes) == 'table' and type(likes.users) == 'table' then
 				for _, uid in ipairs(likes.users) do
@@ -131,7 +139,6 @@ function M.likes(post, noreturn)
 						}
 					end
 				end
-
 				cv:fin()
 			end)
 
@@ -139,6 +146,13 @@ function M.likes(post, noreturn)
 		end
 
 		cv:fin() cv:recv()
+
+		box.space.likes:insert(T.likes.tuple {
+			owner_id = post.to_id;
+			item_id  = post.id;
+			count    = post.likes.count;
+			mtime    = os.time();
+		})
 
 		return {}
 	end)

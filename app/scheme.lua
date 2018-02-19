@@ -93,6 +93,46 @@ spacer.create_space('users', {
 	-- { name = 'bot',      type = 'tree', unique = false, parts = { 'isbot' } },
 })
 
+spacer.create_space('users_extended', {
+	{ name = 'uid',       type = 'number' },
+
+	{ name = 'name',     type = 'string' },
+	{ name = 'photos',   type = 'number' },
+	{ name = 'albums',   type = 'number' },
+
+	{ name = 'friends',     type = 'number' },
+	{ name = 'subscribers', type = 'number' },
+
+	{ name = 'videos',   type = 'number' },
+	{ name = 'audios',   type = 'number' },
+
+	{ name = 'posts',    type = 'number' },
+	{ name = 'reposts',  type = 'number' },
+	{ name = 'comments', type = 'number' },
+	{ name = 'likes',    type = 'number' },
+
+	{ name = 'groups',        type = 'number' },
+	{ name = 'subscriptions', type = 'number' },
+
+	{ name = 'raw', type = 'string' },
+}, {
+	{ name = 'id',            type = 'tree', parts = { 'uid' } },
+	{ name = 'name',          type = 'tree', parts = { 'name' } },
+
+	{ name = 'friends',       type = 'tree', parts = { 'friends' } },
+	{ name = 'subscribers',   type = 'tree', parts = { 'subscribers' } },
+
+	{ name = 'groups',        type = 'tree', parts = { 'groups' } },
+	{ name = 'subscriptions', type = 'tree', parts = { 'subscriptions' } },
+
+	{ name = 'posts',         type = 'tree', parts = { 'posts' } },
+	{ name = 'reposts',       type = 'tree', parts = { 'reposts' } },
+	{ name = 'comments',      type = 'tree', parts = { 'comments' } },
+	{ name = 'likes',         type = 'tree', parts = { 'likes' } },
+}, {
+	engine = 'vinyl',
+})
+
 spacer.create_space('posts', {
 	{ name = 'owner_id', type = 'number' },
 	{ name = 'post_id',  type = 'number' },
@@ -107,6 +147,18 @@ spacer.create_space('posts', {
 }, {
 	{ name = 'vk_id',  type = 'tree', parts = { 'owner_id', 'post_id' } },
 	{ name = 'time',   type = 'tree', unique = false, parts = { 'mtime' } },
+}, {
+	engine = 'vinyl',
+})
+
+spacer.create_space('likes', {
+	{ name = 'owner_id',   type = 'number' },
+	{ name = 'item_id',    type = 'number' },
+	{ name = 'count',      type = 'number' },
+	{ name = 'mtime',      type = 'number' },
+}, {
+	{ name = 'vk_id', type = 'tree', parts = { 'owner_id', 'item_id' } },
+	{ name = 'mtime', type = 'tree', unique = false, parts = { 'mtime' } },
 }, {
 	engine = 'vinyl',
 })
