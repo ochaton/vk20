@@ -1,4 +1,5 @@
 local log = require 'log'
+local json = require 'json'
 local cv  = require 'lib.cv'
 local promise = require 'lib.promise'
 
@@ -61,16 +62,19 @@ function M.download(uids, force, fields)
 		end
 	end
 
+	log.info(json.encode(quids))
+	log.info(json.encode(fields))
+
 	return promise(
 	function (...)
 		local cv = cv() cv:begin()
 
 		local i = 1
-		while i < #quids do
+		while i <= #quids do
 
 			local q = {}
 			local j = 1
-			while j < 1000 and i < #quids do
+			while j < 1000 and i <= #quids do
 				q[#q + 1] = quids[i]
 				i = i + 1
 				j = j + 1

@@ -73,13 +73,22 @@ function M.update_extend_user(uinfo)
 
 	local groups = vk.api.groups.get{ uid = uid, count = 1000 }:direct()
 
-	vk.logic.wall.posts(uid):callback(function (ret)
+	vk.logic.wall.posts(uid, 10):callback(function (ret)
 		uinfo.wall_posts = 0
 		uinfo.wall_likes = 0
 		uinfo.wall_comments = 0
 
 		uinfo.posts = 0
 		uinfo.reposts = 0
+
+		if not uinfo.counters then
+			local ret
+			while not (type(ret) == 'table' and type(ret[1]) == 'table' and type(ret[1].counters) == 'table') do
+				ret = vk.api.users.get{ uid = uinfo.uid, fields = "counters" }:direct()
+			end
+			uinfo.counters = ret[1].counters
+		end
+		print(require'json'.encode(uinfo))
 
 		for _, post in pairs(ret.posts) do
 			uinfo.wall_posts = uinfo.wall_posts + 1
@@ -116,18 +125,18 @@ function M.update_extend_user(uinfo)
 			found = box.space.users_extended:insert(T.users_extended.tuple {
 				uid            = tonumber(uid);
 				name           = uinfo.last_name .. " " .. uinfo.first_name;
-				photos         = tonumber(uinfo.counters.photos);
-				albums         = tonumber(uinfo.counters.albums);
-				friends        = tonumber(uinfo.counters.friends);
-				subscribers    = tonumber(uinfo.counters.followers);
-				videos         = tonumber(uinfo.counters.videos);
-				audios         = tonumber(uinfo.counters.audios);
-				posts          = tonumber(uinfo.posts);
-				reposts        = tonumber(uinfo.reposts);
-				comments       = tonumber(uinfo.wall_comments);
-				likes          = tonumber(uinfo.wall_likes);
-				groups         = tonumber(#groups);
-				subscriptions  = tonumber(uinfo.counters.subscriptions);
+				photos         = tonumber(uinfo.counters.photos) or 0;
+				albums         = tonumber(uinfo.counters.albums) or 0;
+				friends        = tonumber(uinfo.counters.friends) or 0;
+				subscribers    = tonumber(uinfo.counters.followers) or 0;
+				videos         = tonumber(uinfo.counters.videos) or 0;
+				audios         = tonumber(uinfo.counters.audios) or 0;
+				posts          = tonumber(uinfo.posts) or 0;
+				reposts        = tonumber(uinfo.reposts) or 0;
+				comments       = tonumber(uinfo.wall_comments) or 0;
+				likes          = tonumber(uinfo.wall_likes) or 0;
+				groups         = tonumber(#groups) or 0;
+				subscriptions  = tonumber(uinfo.counters.subscriptions) or 0;
 				raw            = json.encode(uinfo);
 			})
 		end

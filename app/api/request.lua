@@ -23,7 +23,7 @@ local function request (method, args)
 		local started = fiber.time()
 
 		local response = http.request('POST', url, req)
-		log.info('Request to %s finished in %0.3f', method, fiber.time() - started)
+		log.info('Request to %s finished in %0.3f {%s}', method, fiber.time() - started, json.encode(args))
 
 		do
 			local ret = { pcall(json.decode, response.body) }

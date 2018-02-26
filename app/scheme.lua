@@ -117,18 +117,18 @@ spacer.create_space('users_extended', {
 	{ name = 'raw', type = 'string' },
 }, {
 	{ name = 'id',            type = 'tree', parts = { 'uid' } },
-	{ name = 'name',          type = 'tree', parts = { 'name' } },
+	{ name = 'name',          type = 'tree', unique = false, parts = { 'name' } },
 
-	{ name = 'friends',       type = 'tree', parts = { 'friends' } },
-	{ name = 'subscribers',   type = 'tree', parts = { 'subscribers' } },
+	{ name = 'friends',       type = 'tree', unique = false, parts = { 'friends' } },
+	{ name = 'subscribers',   type = 'tree', unique = false, parts = { 'subscribers' } },
 
-	{ name = 'groups',        type = 'tree', parts = { 'groups' } },
-	{ name = 'subscriptions', type = 'tree', parts = { 'subscriptions' } },
+	{ name = 'groups',        type = 'tree', unique = false, parts = { 'groups' } },
+	{ name = 'subscriptions', type = 'tree', unique = false, parts = { 'subscriptions' } },
 
-	{ name = 'posts',         type = 'tree', parts = { 'posts' } },
-	{ name = 'reposts',       type = 'tree', parts = { 'reposts' } },
-	{ name = 'comments',      type = 'tree', parts = { 'comments' } },
-	{ name = 'likes',         type = 'tree', parts = { 'likes' } },
+	{ name = 'posts',         type = 'tree', unique = false, parts = { 'posts' } },
+	{ name = 'reposts',       type = 'tree', unique = false, parts = { 'reposts' } },
+	{ name = 'comments',      type = 'tree', unique = false, parts = { 'comments' } },
+	{ name = 'likes',         type = 'tree', unique = false, parts = { 'likes' } },
 }, {
 	engine = 'vinyl',
 })
