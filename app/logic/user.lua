@@ -62,9 +62,6 @@ function M.download(uids, force, fields)
 		end
 	end
 
-	log.info(json.encode(quids))
-	log.info(json.encode(fields))
-
 	return promise(
 	function (...)
 		local cv = cv() cv:begin()

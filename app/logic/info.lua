@@ -88,7 +88,7 @@ function M.update_extend_user(uinfo)
 			end
 			uinfo.counters = ret[1].counters
 		end
-		print(require'json'.encode(uinfo))
+		-- print(require'json'.encode(uinfo))
 
 		for _, post in pairs(ret.posts) do
 			uinfo.wall_posts = uinfo.wall_posts + 1

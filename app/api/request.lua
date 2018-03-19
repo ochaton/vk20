@@ -16,6 +16,7 @@ local function request (method, args)
 
 		log.info('Request to %s. %s try', method, promise.attempt)
 		args.access_token = vk.internal.get_token()
+		if not args.v then args.v = '3.0' end
 
 		local url = string.format('https://api.vk.com/method/%s?', method)
 		local req = tools.url_query(args)
