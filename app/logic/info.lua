@@ -5,7 +5,7 @@ local json = require 'json'
 
 function M.user(uid, days)
 	local user = vk.logic.user.actualize(uid, true):direct()
-	local wall = vk.logic.wall.posts(uid, 10):direct()
+	local wall = vk.logic.wall.posts(uid, 100):direct()
 
 	local friends = vk.logic.user.get_friends(uid):direct()
 
@@ -18,7 +18,7 @@ function M.user(uid, days)
 	if type(subscriptions) == 'table' and subscriptions.count and type(subscriptions.groups.items) == 'table' then
 		for _, group in ipairs(subscriptions.groups.items) do
 			cv:begin()
-			vk.logic.wall.posts(group, 300):callback(function () cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(group, 30):callback(function () cv:fin() end).MAX_RETRY = 1
 		end
 	end
 
@@ -28,19 +28,19 @@ function M.user(uid, days)
 
 		for _, user in ipairs(followers.items) do
 			cv:begin()
-			vk.logic.wall.posts(user, 300):callback(function() cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(user, 30):callback(function() cv:fin() end).MAX_RETRY = 1
 		end
 	end
 
 	for _, friend in ipairs(friends) do
 		cv:begin()
-		vk.logic.wall.posts(friend, 300):callback(function() cv:fin() end).MAX_RETRY = 1
+		vk.logic.wall.posts(friend, 30):callback(function() cv:fin() end).MAX_RETRY = 1
 	end
 
 	if type(groups) == 'table' then
 		for _, group in ipairs(groups) do
 			cv:begin()
-			vk.logic.wall.posts(group, 300):callback(function() cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(group, 30):callback(function() cv:fin() end).MAX_RETRY = 1
 		end
 	end
 

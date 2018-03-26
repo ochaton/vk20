@@ -7,4 +7,5 @@ deps:
   - https://raw.githubusercontent.com/Mons/lua-base58/master/lua-base58-scm-1.rockspec
   - https://raw.githubusercontent.com/moonlibs/obj/master/obj-scm-1.rockspec
   - https://raw.githubusercontent.com/moonlibs/ctx/master/ctx-scm-1.rockspec
+  - https://raw.githubusercontent.com/starwing/luautf8/master/rockspecs/luautf8-scm-0.rockspec
 tntdeps: {}

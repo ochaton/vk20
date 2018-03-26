@@ -162,3 +162,13 @@ spacer.create_space('likes', {
 }, {
 	engine = 'vinyl',
 })
+
+spacer.create_space('words', {
+	{ name = 'word',  type = 'string' },
+	{ name = 'count', type = 'number' },
+	{ name = 'tdf',   type = 'number' },
+	{ name = 'idf',   type = 'number' },
+},{
+	{ name = 'primary', type = 'tree', parts = { 'word' } },
+	{ name = 'count', unique = false, type = 'tree', parts = { 'count' } },
+})

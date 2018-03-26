@@ -11,10 +11,17 @@ function M.extend_users(count, start)
 		if limit >= count then break end
 
 		if box.space.users_extended:get{ user[ F.users.id ] } then
-		elseif box.space.feed.index.user:count({ user[ F.users.id ] }) < 100 then
-		else
-			limit = limit + 1
-			table.insert(toupdate, user[ F.users.id ])
+			local count = 0
+			for p in box.space.feed.index.user:pairs(user[ F.users.id ], { iterator = "EQ" }) do
+				count = count + 1
+				if count >= 100 then break end
+			end
+
+			if count < 100 then
+			else
+				limit = limit + 1
+				table.insert(toupdate, user[ F.users.id ])
+			end
 		end
 	end
 

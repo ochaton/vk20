@@ -6,7 +6,7 @@ box = {
 	-- snapshot_period = 3600,
 	-- snapshot_count  = 2,
 	pid_file = "tarantool.pid",
-	-- log = 'file:tarantool.log',
+	-- log = 'tarantool.log',
 	-- replication_source = { }
 }
 

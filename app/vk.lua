@@ -105,6 +105,40 @@ function M.feed_actualize()
 	print("DONE")
 end
 
+M.__gc = {
+	collect   = collectgarbage;
+	requests  = 0;
+	threshold = 500;
+	sleep     = 10;
+}
+
+function collectgarbage (...)
+	local args = { ... }
+	if args[1] and args[1] ~= 'collect' then
+		return M.__gc.collect(...)
+	end
+
+	M.__gc.requests = M.__gc.requests + 1
+	if M.__gc.chan then
+		if M.__gc.requests > M.__gc.threshold then
+			M.__gc.chan:put(1)
+		end
+		return "ok"
+	end
+
+	M.__gc.chan = fiber.channel()
+	M.__gc.fiber = fiber.create(function ()
+		while M.__gc.chan do
+			local res = M.__gc.chan:get(tonumber(M.__gc.sleep) or 2)
+			M.__gc.reason = res and 'requests' or 'timeout'
+			M.__gc.collect('collect')
+			M.__gc.requests = 0
+			M.__gc.free = M.__gc.collect('count')
+		end
+	end)
+	return "ok"
+end
+
 local url_sanitize = require 'tools'.url_sanitize
 
 function http_api(req)
