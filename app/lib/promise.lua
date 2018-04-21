@@ -27,7 +27,7 @@ local function new (async_func)
 		M.promises[ self.id ] = true
 		local guard = guard(function ()
 			-- Destroy phase:
-			log.info("Finishing %s", self.id)
+			-- log.info("Finishing %s", self.id)
 			M.promises[ self.id ] = nil
 			M.destroyed = M.destroyed + 1
 		end)
@@ -40,7 +40,9 @@ local function new (async_func)
 			local ok = table.remove(ret, 1)
 			if not ok then
 				log.error("PROMISE: %s.", ret[1])
-				self.__fail_callback(ret)
+				if self.__fail_callback then
+					self.__fail_callback(ret)
+				end
 			else
 				return ret[1]
 			end
@@ -50,6 +52,7 @@ local function new (async_func)
 	self.__retry = 1
 
 	self.id = id
+	self.__chain = { self.async }
 	M.lastid = self.id
 
 	return self
@@ -57,29 +60,40 @@ end
 
 -- setters
 function M:callback(callback)
-	self.__callback = function (...)
+	local __callback = function (...)
 		local ret = { pcall(callback, ...) }
 		local ok = table.remove(ret, 1)
 		if not ok then
 			log.info('PROMISE: error in callback %s', ret[1])
+			-- If exception happened clean all callbacks (everything is already failed)
+			self.__chain = {}
 			return nil
 		end
 		return ret[1]
 	end
 
-	self.fiber = fiber.create(
-		function()
-			fiber.self().name('promise #' .. self.id)
+	table.insert(self.__chain, __callback)
 
-			self.rv = self.async()
-			self.__status = 'done'
+	if not self.fiber then
+		self.fiber = fiber.create(
+			function()
+				fiber.self().name('promise #' .. self.id)
 
-			collectgarbage()
+				while #self.__chain > 0 do
+					fiber.yield()
+					local cb = table.remove(self.__chain, 1)
 
-			self.rv = self.__callback(self.rv)
-			self.fiber = nil
-		end
-	)
+					self.rv = cb(self.rv)
+					self.__status = 'done'
+
+					collectgarbage()
+				end
+
+				self.fiber = nil
+			end
+		)
+	end
+
 	return self
 end
 
