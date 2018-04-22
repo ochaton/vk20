@@ -2,8 +2,71 @@ local M = {}
 
 local cv = require 'lib.cv'
 local json = require 'json'
+local promise = require 'lib.promise'
 
-function M.user(uid, days)
+function M.user_info(uid, days, wall_depth)
+	wall_depth = wall_depth or 1
+	days = days or 0
+
+	return promise(
+	function ()
+		local user, wall, friends, subscriptions, followers, groups
+
+		local cv = cv() cv:begin()
+
+		cv:begin() vk.logic.user.actualize(uid, true):callback(function (reply) user = reply cv:fin() end)
+		cv:begin() vk.logic.wall.posts(uid, 100):callback(function (reply) wall = reply cv:fin() end)
+		cv:begin() vk.logic.user.get_friends(uid):callback(function (reply) friends = reply cv:fin() end)
+
+		cv:begin() vk.api.users.getSubscriptions({ uid = uid }):callback(function(reply)
+			subscriptions = reply
+			subscriptions = subscriptions or {}
+			subscriptions.groups = subscriptions.groups or {}
+			subscriptions.groups.items = subscriptions.groups.items or {}
+			cv:fin()
+		end):callback(function ()
+			for _, group in ipairs(subscriptions.groups.items) do
+				cv:begin() vk.logic.wall.posts(group, wall_depth):callback(function () cv:fin() end)
+			end
+		end)
+
+		cv:begin() vk.api.users.getFollowers({ uid = uid }):callback(function(reply)
+			followers = reply
+			followers = followers or {}
+			followers.items = followers.items or {}
+			cv:fin()
+		end):callback(function ()
+			cv:begin() vk.logic.user.download(followers.items):callback(function () cv:fin() end)
+
+			for _, user in ipairs(followers.items) do
+				cv:begin() vk.logic.wall.posts(user, wall_depth):callback(function() cv:fin() end)
+			end
+		end)
+
+		cv:begin() vk.api.groups.get({ uid = uid }):callback(function(reply)
+			groups = reply
+			cv:fin()
+		end):callback(function ()
+			for _, group in ipairs(groups) do
+				cv:begin() vk.logic.wall.posts(group, wall_depth):callback(function() cv:fin() end)
+			end
+		end)
+
+		cv:fin() cv:recv()
+
+		return {
+			info = user,
+			wall = wall,
+
+			subscriptions = subscriptions,
+			followers = followers
+		}
+	end)
+end
+
+function M.user(uid, days, wall_depth)
+	wall_depth = wall_depth or 1
+	days = days or 0
 	local user = vk.logic.user.actualize(uid, true):direct()
 	local wall = vk.logic.wall.posts(uid, 100):direct()
 
@@ -18,7 +81,7 @@ function M.user(uid, days)
 	if type(subscriptions) == 'table' and subscriptions.count and type(subscriptions.groups.items) == 'table' then
 		for _, group in ipairs(subscriptions.groups.items) do
 			cv:begin()
-			vk.logic.wall.posts(group, 30):callback(function () cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(group, wall_depth):callback(function () cv:fin() end)
 		end
 	end
 
@@ -28,19 +91,19 @@ function M.user(uid, days)
 
 		for _, user in ipairs(followers.items) do
 			cv:begin()
-			vk.logic.wall.posts(user, 30):callback(function() cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(user, wall_depth):callback(function() cv:fin() end)
 		end
 	end
 
 	for _, friend in ipairs(friends) do
 		cv:begin()
-		vk.logic.wall.posts(friend, 30):callback(function() cv:fin() end).MAX_RETRY = 1
+		vk.logic.wall.posts(friend, wall_depth):callback(function() cv:fin() end)
 	end
 
 	if type(groups) == 'table' then
 		for _, group in ipairs(groups) do
 			cv:begin()
-			vk.logic.wall.posts(group, 30):callback(function() cv:fin() end).MAX_RETRY = 1
+			vk.logic.wall.posts(group, wall_depth):callback(function() cv:fin() end)
 		end
 	end
 
@@ -215,7 +278,7 @@ function M.extend_user(uid)
 			groups         = tonumber(#groups);
 			subscriptions  = tonumber(uinfo.counters.subscriptions);
 			raw            = json.encode(uinfo);
-		})		
+		})
 	end
 	return T.users_extended.hash(found)
 end

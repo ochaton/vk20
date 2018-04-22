@@ -8,8 +8,13 @@ local uuid    = require 'uuid'
 
 M.DEFAULT_COUNT = 100
 
-function M.posts(wall_id, count)
+function M.posts(wall_id, count, offset)
 	count = count or M.DEFAULT_COUNT
+	local start_from = offset or 0
+
+	if wall_id < 0 then
+		vk.logic.public.info(-wall_id)
+	end
 
 	return promise(
 		function (promise)
@@ -20,7 +25,7 @@ function M.posts(wall_id, count)
 			rv.comments = {}
 			rv.likes = {}
 
-			local offset = 0
+			local offset = start_from
 			while offset < count do
 
 				cv:begin()
@@ -147,12 +152,15 @@ function M.likes(post, noreturn)
 
 		cv:fin() cv:recv()
 
-		box.space.likes:insert(T.likes.tuple {
-			owner_id = post.to_id;
-			item_id  = post.id;
-			count    = post.likes.count;
-			mtime    = os.time();
-		})
+		local ok, err = pcall(function()
+			box.space.likes:insert(T.likes.tuple {
+				owner_id = post.to_id;
+				item_id  = post.id;
+				count    = post.likes.count;
+				mtime    = os.time();
+			})
+		end)
+		if not ok then print(err) end
 
 		return {}
 	end)

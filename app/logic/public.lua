@@ -1,6 +1,8 @@
 local log  = require 'log'
 local uuid = require 'uuid'
 local cv   = require 'lib.cv'
+local promise = require 'lib.promise'
+local json = require 'json'
 
 
 local M = {}
@@ -41,6 +43,44 @@ function M.info(gid)
 	end
 
 	return T.publics.hash(tup)
+end
+
+function M.async_info(gid)
+	local gid = assert(tonumber(gid), 'Gid must be a number')
+	return promise(
+	function()
+		vk.api.groups.getById({ gid = gid, fields = 'counters,members_count,can_see_all_posts,verified' }):callback(
+		function (reply)
+			assert(type(reply) == 'table' and reply[1], 'Reply is Null')
+			local public = table.remove(reply, 1)
+
+			vk.api.wall.get({ owner_id = -gid, count = 1 }):callback(
+			function(resp)
+				local posts
+				if (type(resp) == 'table' and resp[1]) then
+					posts = resp[1]
+				else
+					log.error('Reply wall for %s failed. got %s', -gid, json.encode(resp))
+					return
+				end
+				local found = box.space.publics:get{ gid }
+				if found then
+					box.space.publics:update({ gid }, {
+						{ '=', F.publics.members, public.members_count };
+						{ '=', F.publics.posts, posts };
+						{ '=', F.publics.videos, public.counters.videos or 0  }
+					})
+				else
+					box.space.publics:insert(T.publics.tuple {
+						gid     = gid;
+						members = public.members_count;
+						posts   = posts;
+						videos  = public.counters.videos or 0;
+					})
+				end
+			end)
+		end)
+	end)
 end
 
 function M.find_active(gid, maximum)
@@ -212,9 +252,9 @@ function M.get_members(gid)
 
 		local offset = 0
 		while offset < public.members do
-			local reply = vk.api.groups.getMembers{ group_id = gid, count = 1000, offset = offset }
-			if type(reply) == 'table' and type(reply.items) then
-				for _, uid in ipairs(reply.items) do
+			local reply = vk.api.groups.getMembers{ group_id = gid, count = 1000, offset = offset }:direct()
+			if type(reply) == 'table' and type(reply.users) then
+				for _, uid in ipairs(reply.users) do
 					table.insert(members, uid)
 				end
 			end
