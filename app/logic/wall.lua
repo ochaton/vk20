@@ -8,12 +8,26 @@ local uuid    = require 'uuid'
 
 M.DEFAULT_COUNT = 100
 
-function M.posts(wall_id, count, offset)
+function M.posts(wall_id, count, offset, opts)
 	count = count or M.DEFAULT_COUNT
 	local start_from = offset or 0
 
 	if wall_id < 0 then
 		vk.logic.public.info(-wall_id)
+	end
+
+	opts = opts or {}
+
+	if opts.only_wall then
+		opts.comments = false
+		opts.likes = false
+	else
+		if opts.likes == nil then
+			opts.likes = true
+		end
+		if opts.comments == nil then
+			opts.comments = true
+		end
 	end
 
 	return promise(
@@ -71,11 +85,11 @@ function M.posts(wall_id, count, offset)
 							})
 						end
 
-						if post.comments.count > 0 then
+						if opts.comments and post.comments.count > 0 then
 							rv.comments[ post.id ] =  vk.logic.wall.comments(post):direct()
 						end
 
-						if post.likes.count > 0 then
+						if opts.likes and post.likes.count > 0 then
 							rv.likes[ post.id ] = vk.logic.wall.likes(post):direct()
 						end
 					end

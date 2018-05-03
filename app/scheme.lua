@@ -172,3 +172,10 @@ spacer.create_space('words', {
 	{ name = 'primary', type = 'tree', parts = { 'word' } },
 	{ name = 'count', unique = false, type = 'tree', parts = { 'count' } },
 })
+
+spacer.create_space('user_vectors', {
+	{ name = 'uid', type = 'number' },
+	{ name = 'vector', type = '*' },
+}, {
+	{ name = 'primary', type = 'tree', parts = { 'uid' } },
+})
