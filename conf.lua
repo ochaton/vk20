@@ -2,11 +2,11 @@ box = {
 	listen = os.getenv("LISTEN_URI") or "127.0.0.1:5001",
 	memtx_memory = 1.5 * 2^30,
 	background = not tonumber(os.getenv("DEV")) == 1,
-	vinyl_cache = 134217728,
+	vinyl_cache = 2 * 2^30, -- 134217728,
 	-- snapshot_period = 3600,
 	-- snapshot_count  = 2,
 	pid_file = "tarantool.pid",
-	-- log = 'tarantool.log',
+	log = 'pipe: tee -a tarantool.log',
 	-- replication_source = { }
 }
 

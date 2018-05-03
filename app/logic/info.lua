@@ -134,58 +134,37 @@ function M.update_extend_user(uinfo)
 	local uid = uinfo.uid
 	if uinfo.deactivated then return {} end
 
-	local groups = vk.api.groups.get{ uid = uid, count = 1000 }:direct()
+	vk.api.groups.get{ uid = uid, count = 1000 }:callback(function (groups)
+		vk.logic.wall.posts(uid, 10):callback(function (ret)
+			uinfo.wall_posts = 0
+			uinfo.wall_likes = 0
+			uinfo.wall_comments = 0
 
-	vk.logic.wall.posts(uid, 10):callback(function (ret)
-		uinfo.wall_posts = 0
-		uinfo.wall_likes = 0
-		uinfo.wall_comments = 0
+			uinfo.posts = 0
+			uinfo.reposts = 0
 
-		uinfo.posts = 0
-		uinfo.reposts = 0
-
-		if not uinfo.counters then
-			local ret
-			while not (type(ret) == 'table' and type(ret[1]) == 'table' and type(ret[1].counters) == 'table') do
-				ret = vk.api.users.get{ uid = uinfo.uid, fields = "counters" }:direct()
+			if not uinfo.counters then
+				local ret
+				while not (type(ret) == 'table' and type(ret[1]) == 'table' and type(ret[1].counters) == 'table') do
+					ret = vk.api.users.get{ uid = uinfo.uid, fields = "counters" }:direct()
+				end
+				uinfo.counters = ret[1].counters
 			end
-			uinfo.counters = ret[1].counters
-		end
-		-- print(require'json'.encode(uinfo))
+			-- print(require'json'.encode(uinfo))
 
-		for _, post in pairs(ret.posts) do
-			uinfo.wall_posts = uinfo.wall_posts + 1
-			uinfo.wall_likes = uinfo.wall_likes + post.likes
-			uinfo.wall_comments = uinfo.wall_comments + post.comments
+			for _, post in pairs(ret.posts) do
+				uinfo.wall_posts = uinfo.wall_posts + 1
+				uinfo.wall_likes = uinfo.wall_likes + post.likes
+				uinfo.wall_comments = uinfo.wall_comments + post.comments
 
-			if post.type == 'post' then
-				uinfo.posts = uinfo.posts + 1
-			elseif post.type == 'copy' then
-				uinfo.reposts = uinfo.reposts + 1
+				if post.type == 'post' then
+					uinfo.posts = uinfo.posts + 1
+				elseif post.type == 'copy' then
+					uinfo.reposts = uinfo.reposts + 1
+				end
 			end
-		end
 
-		local found = box.space.users_extended:get({ uid })
-		if found then
-			box.space.users_extended:update({ uid }, {
-				{ '=', F.users_extended.uid,           uid };
-				{ '=', F.users_extended.name,          uinfo.last_name .. " " .. uinfo.first_name };
-				{ '=', F.users_extended.photos,        uinfo.counters.photos };
-				{ '=', F.users_extended.albums,        uinfo.counters.albums };
-				{ '=', F.users_extended.friends,       uinfo.counters.friends };
-				{ '=', F.users_extended.subscribers,   uinfo.counters.followers };
-				{ '=', F.users_extended.videos,        uinfo.counters.videos };
-				{ '=', F.users_extended.audios,        uinfo.counters.audios };
-				{ '=', F.users_extended.posts,         uinfo.posts };
-				{ '=', F.users_extended.reposts,       uinfo.reposts };
-				{ '=', F.users_extended.comments,      uinfo.wall_comments };
-				{ '=', F.users_extended.likes,         uinfo.wall_likes };
-				{ '=', F.users_extended.groups,        #groups };
-				{ '=', F.users_extended.subscriptions, uinfo.counters.subscriptions };
-				{ '=', F.users_extended.raw,           json.encode(uinfo) };
-			})
-		else
-			found = box.space.users_extended:insert(T.users_extended.tuple {
+			local found = box.space.users_extended:replace(T.users_extended.tuple {
 				uid            = tonumber(uid);
 				name           = uinfo.last_name .. " " .. uinfo.first_name;
 				photos         = tonumber(uinfo.counters.photos) or 0;
@@ -202,7 +181,7 @@ function M.update_extend_user(uinfo)
 				subscriptions  = tonumber(uinfo.counters.subscriptions) or 0;
 				raw            = json.encode(uinfo);
 			})
-		end
+		end)
 	end)
 
 	return true

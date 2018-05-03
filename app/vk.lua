@@ -17,6 +17,7 @@ M.feed  = require 'logic.feed'
 
 M.auth = require 'auth.oauth'
 M.scripts = require 'scripts.extend_users'
+M.vectorize = require 'scripts.vectorize'
 
 local tokens = require 'tokens'
 M.tokens = {}
@@ -108,7 +109,7 @@ end
 M.__gc = {
 	collect   = collectgarbage;
 	requests  = 0;
-	threshold = 500;
+	threshold = 1;
 	sleep     = 10;
 }
 

@@ -41,39 +41,81 @@ function M.intersection_async(uid1, uid2, friends1, friends2)
 	end)
 end
 
-function M.intersection(uid1, uid2, friends1, friends2)
+function M.get_friends(uid)
+	local friends = {}
+	local offset = 0
+	local user = vk.logic.user.actualize(uid):direct()
+
+	while true do
+		local result
+		local retry = 0
+		repeat
+			retry = retry + 1
+			result = vk.api.friends.get({ user_id = uid, offset = offset }):direct()
+			log.info("Get friends for %s => %s. try #%s", uid, #result, retry)
+		until (type(result) == 'table' and #result > 0) or retry >= 3
+
+		-- because even after 3 replies we can get nil-answer
+		result = result or {}
+
+		for _, fid in ipairs(result) do
+			table.insert(friends, fid)
+		end
+
+		if #result == 5000 then
+			offset = offset + 5000
+		else
+			break
+		end
+	end
+
+	user.extra = user.extra or {}
+	user.extra.friends = friends or {}
+
+	box.space.users:update({ user.id }, {
+		{ '=', F.users.mtime, os.time() },
+		{ '=', F.users.extra, user.extra },
+	})
+
+	return friends
+end
+
+function M.intersection(uid1, uid2, friends1, friends2, cached)
 	local uid1 = assert(tonumber(uid1), 'uid1 must be a number')
 	local uid2 = assert(tonumber(uid2), 'uid2 must be a number')
 
-	local cv = cv() cv:begin()
-
 	if not friends1 then
-		cv:begin()
-		vk.api.friends.get({ user_id = uid1 }):callback(
-		function (reply)
-			friends1 = reply or {}
-			cv:fin()
-		end)
+		if cached then
+			friends1 = vk.logic.user.get_friends(uid1)
+			if #friends1 == 0 then
+				friends1 = M.get_friends(uid1)
+			end
+		else
+			friends1 = M.get_friends(uid1)
+		end
 	end
 
 	if not friends2 then
-		cv:begin()
-		vk.api.friends.get({ user_id = uid2 }):callback(
-		function (reply)
-			friends2 = reply or {}
-			cv:fin()
-		end)
+		if cached then
+			friends2 = vk.logic.user.get_friends(uid2)
+			if #friends2 == 0 then
+				friends2 = M.get_friends(uid2)
+			end
+		else
+			friends2 = M.get_friends(uid2)
+		end
 	end
-
-	cv:fin()
-	cv:recv() -- block here
 
 	local hash = {}
 	local common = {}
 
+	log.info("#Friends[%s] = %s, #Friends[%s] = %s", uid1, #friends1, uid2, #friends2)
+
 	for _, uid in ipairs(friends1) do
 		hash[uid] = true
 	end
+
+	hash[uid1] = true
 
 	for _, uid in ipairs(friends2) do
 		if hash[uid] then
